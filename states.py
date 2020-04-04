@@ -38,13 +38,14 @@ class GoToBallState(BaseState):
         my_car = Car(packet.game_cars[ind])
         dt = packet.game_info.seconds_elapsed - self.previous_tick_time
 
-        if len(self.mechanic_stack) == 0:
+        if len(self.mechanic_stack.stack) == 0:
             self.mechanic_stack.push(DriveMechanic(ball_loc))
 
-        if np.abs(my_car.correction_to(ball_loc)) > np.pi/1.1:
-            self.mechanic_stack.push(HalfFlipMechanic(ball_loc))
-        elif my_car.dist_2d(ball_loc) < 600 and packet.game_info.seconds_elapsed - self.last_dodge_time > 4.0:
-            self.mechanic_stack.push(DodgeMechanic(ball_loc))
+        if not len(self.mechanic_stack.stack) > 1:
+            if np.abs(my_car.correction_to(ball_loc)) > np.pi/1.1:
+                self.mechanic_stack.push(HalfFlipMechanic(ball_loc))
+            elif my_car.dist_2d(ball_loc) < 600 and packet.game_info.seconds_elapsed - self.last_dodge_time > 4.0:
+                self.mechanic_stack.push(DodgeMechanic(ball_loc))
 
         self.mechanic_stack.update_target(ball_loc)
 
@@ -67,13 +68,14 @@ class GrabBoostState(BaseState):
     def initialize(self):
         self.boost_aquired = False
         self.boost_index = -1
+        self.boost_loc = None
 
     def update(self, packet, ball_pred, field_info, ind):
         my_car = Car(packet.game_cars[ind])
-        if len(self.mechanic_stack) == 0:
+        if len(self.mechanic_stack.stack) == 0:
             self.mechanic_stack.push(DriveMechanic(Vec3(0.0, 0.0, 0.0)))
 
-        if not self.boost_aquired and my_car.loc.z < 100:
+        if (not self.boost_aquired) and my_car.loc.z < 100:
             big_boosts_dist = 99999
 
             for i in range(field_info.num_boosts):
@@ -81,6 +83,7 @@ class GrabBoostState(BaseState):
                     location = Vec3(field_info.boost_pads[i].location)
                     if my_car.dist_2d(location) < big_boosts_dist:
                         big_boosts_dist = my_car.dist_2d(location)
+                        self.boost_loc = location
                         self.mechanic_stack.update_target(location)
                         self.boost_index = i
 
@@ -88,6 +91,7 @@ class GrabBoostState(BaseState):
         elif not packet.game_boosts[self.boost_index].is_active:
             self.boost_aquired = False
         
+        self.mechanic_stack.update_target(self.boost_loc)
 
         self.expired = my_car.raw_obj.boost > 80
 
@@ -98,14 +102,14 @@ class GoOutOfGoalState(BaseState):
     def update(self, packet, ball_pred, field_info, ind):
         my_car = Car(packet.game_cars[ind])
         target_loc = Vec3(my_car.loc.x, my_car.loc.y * .9, my_car.loc.z)
-        if self.mechanic == None:
-            self.mechanic = DriveMechanic(target_loc)
+        if len(self.mechanic_stack.stack) == 0:
+            self.mechanic_stack.push(DriveMechanic(target_loc))
 
-        self.mechanic.update_target(target_loc)
+        self.mechanic_stack.update_target(target_loc)
 
         self.expired = np.abs(my_car.loc.y) < 5120
 
-        return self.mechanic.step(my_car)
+        return self.mechanic_stack.step(my_car)
 
 
 class GetOffTheWallState(BaseState):
@@ -113,14 +117,15 @@ class GetOffTheWallState(BaseState):
         my_car = Car(packet.game_cars[ind])
         target_loc = Vec3(my_car.loc.x, my_car.loc.y, 0.0)
 
-        if self.mechanic == None:
-            self.mechanic = DriveMechanic(target_loc)
+        if len(self.mechanic_stack.stack) == 0:
+            self.mechanic_stack.push(DriveMechanic(target_loc))
 
-        self.mechanic.update_target(target_loc)
+        self.mechanic_stack.update_target(target_loc)
+
 
         self.expired = my_car.loc.z < 200
 
-        return self.mechanic.step(my_car)
+        return self.mechanic_stack.step(my_car)
 
 
 class KickOffState(BaseState):

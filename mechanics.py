@@ -18,20 +18,22 @@ class MechanicStack:
 
     def update_target(self, target):
         self.target = target
-        if len(stack) != 0:
+        if len(self.stack) != 0:
             self.stack[-1].update_target(self.target)
 
     def push(self, mechanic):
         self.stack.append(mechanic);
         
     def step(self, car, dt=0.0):
-        if len(stack) == 0:
+        if len(self.stack) == 0:
             return self.controller
+
+        self.controller = self.stack[-1].step(car, dt)
 
         if self.stack[-1].done:
             self.stack.pop(-1)
         
-        return self.stack[-1].step(car, dt)
+        return self.controller
 
 class BaseMechanic:
     def initialize(self):

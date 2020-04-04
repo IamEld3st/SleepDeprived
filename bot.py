@@ -57,7 +57,7 @@ class MyBot(BaseAgent):
             render_text.append(str(distance_2d(ball_location, car_location)))
             debug_text = "\n".join(render_text)
             self.renderer.draw_string_3d(car_location, 2, 2,
-                                debug_text, renderer.white())
+                                debug_text, self.renderer.white())
             self.renderer.end_rendering()
 
         return self.controller_state
