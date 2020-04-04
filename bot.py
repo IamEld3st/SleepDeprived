@@ -15,7 +15,7 @@ class MyBot(BaseAgent):
         self.controller_state = SimpleControllerState()
         self.last_score_total = 0
         self.overtime_val_change = False
-        self.state = KickOffState()
+        self.state = GoToBallState()
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         my_car = packet.game_cars[self.index]
@@ -37,7 +37,7 @@ class MyBot(BaseAgent):
                 self.last_score_total = packet.teams[0].score + \
                     packet.teams[1].score
                 self.overtime_val_change = packet.game_info.is_overtime
-                self.state = KickOffState()
+                self.state = GoToBallState()
         else:
             if distance_2d(car_location, ball_location) < 2500:
                 self.state = GoToBallState()
@@ -48,18 +48,16 @@ class MyBot(BaseAgent):
             else:
                 self.state = EmptyState()
 
-        render_text = []
-        render_text.append(self.state.__class__.__name__)
-        render_text.append(self.state.mechanic.__class__.__name__)
-        render_text.append(str(distance_2d(ball_location, car_location)))
-        debug_text = "\n".join(render_text)
-        draw_debug(self.renderer, car_location, debug_text)
+        if DEBUG_STATE_RENDER:
+            self.renderer.begin_rendering("State_Draw")
+            render_text = []
+            render_text.append(self.state.__class__.__name__)
+            for mechanic in self.state.mechanic_stack.stack:
+                render_text.append(mechanic.__class__.__name__)
+            render_text.append(str(distance_2d(ball_location, car_location)))
+            debug_text = "\n".join(render_text)
+            self.renderer.draw_string_3d(car_location, 2, 2,
+                                debug_text, renderer.white())
+            self.renderer.end_rendering()
 
         return self.controller_state
-
-
-def draw_debug(renderer, location, action_display):
-    renderer.begin_rendering()
-    renderer.draw_string_3d(location, 2, 2,
-                            action_display, renderer.white())
-    renderer.end_rendering()

@@ -9,15 +9,40 @@ from constants import *
 
 from rlbot.agents.base_agent import SimpleControllerState
 
+class MechanicStack:
+    def __init__(self):
+        self.stack = []
+        self.target = Vec3()
+        self.done = False
+        self.controller = SimpleControllerState()
+
+    def update_target(self, target):
+        self.target = target
+        if len(stack) != 0:
+            self.stack[-1].update_target(self.target)
+
+    def push(self, mechanic):
+        self.stack.append(mechanic);
+        
+    def step(self, car, dt=0.0):
+        if len(stack) == 0:
+            return self.controller
+
+        if self.stack[-1].done:
+            self.stack.pop(-1)
+        
+        return self.stack[-1].step(car, dt)
 
 class BaseMechanic:
+    def initialize(self):
+        pass
+
     def __init__(self, target):
         self.target = target
-        self.sub_mechanic = None
         self.time_elapsed = 0.0
         self.controller = SimpleControllerState()
         self.done = False
-        self.persist = []
+        self.initialize()
 
     def update_target(self, target):
         self.target = target
@@ -41,7 +66,7 @@ class DriveMechanic(BaseMechanic):
             200/(self.target.z+0.1)+car.dist_2d(self.target)/1000, 0, 1)
 
         self.controller.boost = (not car.raw_obj.is_super_sonic and car.raw_obj.has_wheel_contact and np.abs(
-            car.correction_to(self.target)) < np.pi/4)
+            car.correction_to(self.target)) < np.pi/4 and car.dist_2d(self.target) > 1000)
 
         self.controller.handbrake = (car.raw_obj.has_wheel_contact and np.abs(
             car.correction_to(self.target)) > np.pi/3)
@@ -73,7 +98,6 @@ class HalfFlipMechanic(BaseMechanic):
             self.controller.pitch = -1.0
             self.controller.roll = car.steer(self.target)
         else:
-            #self.controller.throttle = 1.0
             pitch, roll = car.recovery()
             self.controller.pitch = pitch
             self.controller.roll = roll

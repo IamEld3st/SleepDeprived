@@ -34,6 +34,7 @@ class Car:
 
     def dodge(self, target):
         dir_loc = self.rel_loc(target).normalized()
+        '''
         vf = self.vel.dot(self.ori.forward)
         s = np.abs(vf) / 2300.0
 
@@ -49,3 +50,8 @@ class Car:
         temp = Vec3(pitch, yaw, 0).normalized()
         # Pitch, Yaw
         return -temp.x, temp.y
+        '''
+        return -dir_loc.x, dir_loc.y
+    
+    def get_ball_avoid(self, ball_loc):
+        pass
