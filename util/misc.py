@@ -31,3 +31,7 @@ def find_correction(current: Vec3, ideal: Vec3) -> float:
             diff -= 2 * math.pi
 
     return diff
+
+
+def side(x):
+    return -1 if x == 0 else 1

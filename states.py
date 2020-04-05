@@ -90,7 +90,7 @@ class GrabBoostState(BaseState):
             self.boost_aquired = True
         elif not packet.game_boosts[self.boost_index].is_active:
             self.boost_aquired = False
-        
+
         self.mechanic_stack.update_target(self.boost_loc)
 
         self.expired = my_car.raw_obj.boost > 80
@@ -122,46 +122,47 @@ class GetOffTheWallState(BaseState):
 
         self.mechanic_stack.update_target(target_loc)
 
-
         self.expired = my_car.loc.z < 200
 
         return self.mechanic_stack.step(my_car)
 
 
 class KickOffState(BaseState):
+    def initialize(self):
+        self.back_side_kickoff = None
+
     def update(self, packet, ball_pred, field_info, ind):
         my_car = Car(packet.game_cars[ind])
         ball_loc = Vec3(packet.game_ball.physics.location)
         dt = packet.game_info.seconds_elapsed - self.previous_tick_time
 
-        if self.mechanic == None:
-            self.mechanic = DriveMechanic(ball_loc)
-
-        if len(self.persist) < 3:
-            self.persist = [my_car.loc, my_car.raw_obj.boost, 0]
-
-        if self.mechanic.done:
-            if self.persist[2] == 0:
-                if self.persist[0].x < 150.0:
-                    target_loc = Vec3(500, 0, 0)
-                elif np.abs(self.persist[0].y) > 3000:
-                    target_loc = Vec3(200*-np.sign(self.persist[0].x), 0, 0)
-                else:
-                    target_loc = Vec3(0, my_car.loc.y*2.65, 0)
-                self.mechanic = DriveMechanic(target_loc)
-                if self.persist[1] < my_car.raw_obj.boost:
-                    self.persist[2] = 1
-            elif self.persist[2] == 1:
-                self.mechanic = DodgeMechanic(ball_loc)
-                self.persist[2] = 2
+        if self.back_side_kickoff == None:
+            if np.abs(my_car.loc.y) > 3000:
+                self.back_side_kickoff = True
             else:
-                self.mechanic = DriveMechanic(ball_loc)
+                self.back_side_kickoff = False
 
-        self.expired = bool(ball_loc.x + ball_loc.y)
+        target_loc = Vec3(0, 200*side(my_car.raw_obj.team), 0)
+        if self.back_side_kickoff:
+            if np.abs(my_car.loc.x) < 100:
+                target_loc = Vec3(0, 200*side(my_car.raw_obj.team), 0)
+            else:
+                target_loc = Vec3(1000*-np.sign(my_car.loc.x), 0, 0)
 
-        self.persist[1] = my_car.raw_obj.boost
+        # self.mechanic_stack.update_target(target_loc)
+
+        if len(self.mechanic_stack.stack) == 0:
+            if not self.back_side_kickoff and my_car.dist_2d(ball_loc) < 650:
+                self.mechanic_stack.push(DodgeMechanic(ball_loc))
+            elif self.back_side_kickoff and my_car.dist_2d(ball_loc) < 300:
+                self.mechanic_stack.push(DodgeMechanic(ball_loc))
+            else:
+                self.mechanic_stack.push(DriveMechanic(target_loc))
+
+        self.expired = ball_loc.flat().length() > 0
+
         self.previous_tick_time = packet.game_info.seconds_elapsed
-        return self.mechanic.step(my_car, dt)
+        return self.mechanic_stack.step(my_car, dt)
 
 
 class TestState(BaseState):

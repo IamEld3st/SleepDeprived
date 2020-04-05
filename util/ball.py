@@ -15,3 +15,4 @@ class Car:
 
     def dist_2d(self, target):
         return distance_2d(self.loc, target)
+

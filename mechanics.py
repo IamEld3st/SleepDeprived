@@ -9,10 +9,11 @@ from constants import *
 
 from rlbot.agents.base_agent import SimpleControllerState
 
+
 class MechanicStack:
     def __init__(self):
         self.stack = []
-        self.target = Vec3()
+        self.target = Vec3(0, 0, 0)
         self.done = False
         self.controller = SimpleControllerState()
 
@@ -22,8 +23,11 @@ class MechanicStack:
             self.stack[-1].update_target(self.target)
 
     def push(self, mechanic):
-        self.stack.append(mechanic);
-        
+        self.stack.append(mechanic)
+
+    def clear(self):
+        self.stack = []
+
     def step(self, car, dt=0.0):
         if len(self.stack) == 0:
             return self.controller
@@ -32,8 +36,9 @@ class MechanicStack:
 
         if self.stack[-1].done:
             self.stack.pop(-1)
-        
+
         return self.controller
+
 
 class BaseMechanic:
     def initialize(self):
@@ -115,11 +120,11 @@ class DodgeMechanic(BaseMechanic):
 
         if self.time_elapsed < 0.1:
             self.controller.jump = True
-        if self.time_elapsed < 0.2:
+        elif self.time_elapsed < 0.2:
             self.controller.pitch = pitch
             self.controller.yaw = yaw
             self.controller.jump = False
-        if self.time_elapsed < 0.25:
+        elif self.time_elapsed < 0.25:
             self.controller.pitch = pitch
             self.controller.yaw = yaw
             self.controller.jump = True
